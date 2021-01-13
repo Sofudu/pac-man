@@ -38,7 +38,7 @@ DIRECTIONS = {'up': Position(0, -1), 'left': Position(-1, 0), 'down': Position(0
 
 # Функция загрузки изображения
 def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
+    fullname = os.path.join('sprites', name)
     try:
         image = pygame.image.load(fullname)
     except pygame.error as message:
@@ -89,6 +89,10 @@ def enter_frightened_mode():
     pinky.change_mode('frightened')
     inky.change_mode('frightened')
     clyde.change_mode('frightened')
+
+
+def get_last_key():
+    pass
 
 
 # Основной класс
@@ -162,7 +166,7 @@ class Pacman(Entity):
         self.pos = Position(13, 26)
 
     def choice_direction(self):
-        return DIRECTIONS[last_key]
+        return DIRECTIONS[get_last_key()]
 
 
 class Blinky(Entity):
@@ -340,3 +344,10 @@ class Clyde(Entity):
                 if vector == self.direction:
                     break
             self.image = Entity.image_eaten[direction]
+
+
+pacman = Pacman()
+blinky = Blinky()
+pinky = Pinky()
+inky = Inky()
+clyde = Clyde()
