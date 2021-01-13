@@ -2,6 +2,7 @@ import pygame
 import os
 import sys
 from itertools import cycle
+from entities import pacman, blinky, pinky, inky, clyde, screen, CELL_SIZE
 
 
 def load_image(name, colorkey=None):
@@ -60,6 +61,43 @@ def start_screen():
         pygame.display.flip()
 
 
+def move():
+    global pacman_deltax, pacman_deltay, blinky_deltax, blinky_deltay, pinky_deltax, pinky_deltay, inky_deltax, inky_deltay, clyde_deltax, clyde_deltay
+    pacman_deltax += (pacman.get_direction() * 2).to_tuple()[0]
+    pacman_deltay += (pacman.get_direction() * 2).to_tuple()[1]
+    blinky_deltax += blinky.get_direction().to_tuple()[0]
+    blinky_deltay += blinky.get_direction().to_tuple()[1]
+    pinky_deltax += pinky.get_direction().to_tuple()[0]
+    pinky_deltay += pinky.get_direction().to_tuple()[1]
+    inky_deltax += inky.get_direction().to_tuple()[0]
+    inky_deltay += inky.get_direction().to_tuple()[1]
+    clyde_deltax += clyde.get_direction().to_tuple()[0]
+    clyde_deltay += clyde.get_direction().to_tuple()[1]
+    if blinky_deltax == 16 or blinky_deltay == 16 or blinky_deltax == -16 or blinky_deltay == -16:
+        blinky.make_step()
+        blinky_deltax = blinky_deltay = 0
+    if pinky_deltax == 16 or pinky_deltay == 16 or pinky_deltax == -16 or pinky_deltay == -16:
+        pinky.make_step()
+        pinky_deltax = pinky_deltay = 0
+    if inky_deltax == 16 or inky_deltay == 16 or inky_deltax == -16 or inky_deltay == -16:
+        inky.make_step()
+        inky_deltax = inky_deltay = 0
+    if clyde_deltax == 16 or clyde_deltay == 16 or clyde_deltax == -16 or clyde_deltay == -16:
+        clyde.make_step()
+        clyde_deltax = clyde_deltay = 0
+    if pacman_deltax == 16 or pacman_deltax == -16:
+        pacman.make_step()
+        pacman_deltax = 0
+    if pacman_deltay == 16 or pacman_deltay == -16:
+        pacman.make_step()
+        pacman_deltay = 0
+    blinky.update_rect(blinky_deltax, blinky_deltay)
+    pinky.update_rect(pinky_deltax, pinky_deltay)
+    inky.update_rect(inky_deltax, inky_deltay)
+    clyde.update_rect(clyde_deltax, clyde_deltay)
+    pacman.update_rect(pacman_deltax, pacman_deltay)
+
+
 class Board:
     # создание поля
     def __init__(self, width, height):
@@ -69,7 +107,7 @@ class Board:
         # значения по умолчанию
         self.left = 0
         self.top = 0
-        self.cell_size = 16
+        self.cell_size = CELL_SIZE
 
     # настройка внешнего вида
     def set_view(self, left, top, cell_size):
@@ -81,7 +119,7 @@ class Board:
         r = self.cell_size
         for i in range(self.height):
             for j in range(self.width):
-                pygame.draw.rect(screen, "white", (self.left + r * j, self.top + r * i, r, r), 1)
+                pygame.draw.rect(screen, pygame.color.Color(50, 50, 50), (self.left + r * j, self.top + r * i, r, r), 1)
 
     def get_cell(self, mouse_pos):
         x0 = self.left
@@ -124,25 +162,49 @@ all_sprites = pygame.sprite.Group()
 wall = Walls()
 all_sprites.add(wall)
 
-p = Pacman()
-all_sprites.add(p)
+all_sprites.add(pacman, blinky, pinky, inky, clyde)
 
 pygame.display.set_caption("Pac-Man")
-screen = pygame.display.set_mode((448, 576))
 board = Board(28, 36)
 
 clock = pygame.time.Clock()
 running = True
 fps = 60
-start_screen()
+# start_screen()
+pinky.change_mode('chase')
+inky.change_mode('chase')
+clyde.change_mode('chase')
+pinky.pos = blinky.pos.copy()
+inky.pos = blinky.pos.copy()
+clyde.pos = blinky.pos.copy()
+pinky.direction = blinky.direction.copy()
+inky.direction = blinky.direction.copy()
+clyde.direction = blinky.direction.copy()
+
+pacman_deltax = pacman_deltay = blinky_deltax = blinky_deltay = pinky_deltax = pinky_deltay = inky_deltax = inky_deltay = clyde_deltax = clyde_deltay = 0
+blinky.update_rect(blinky_deltax, blinky_deltay)
+pinky.update_rect(pinky_deltax, pinky_deltay)
+inky.update_rect(inky_deltax, inky_deltay)
+clyde.update_rect(clyde_deltax, clyde_deltay)
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             print(board.get_cell(event.pos))
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                pacman.change_direction('up')
+            if event.key == pygame.K_s:
+                pacman.change_direction('down')
+            if event.key == pygame.K_a:
+                pacman.change_direction('left')
+            if event.key == pygame.K_d:
+                pacman.change_direction('right')
+    # move()
     screen.fill("black")
     clock.tick(fps)
     all_sprites.draw(screen)
+    board.render()
     pygame.display.flip()
 pygame.quit()

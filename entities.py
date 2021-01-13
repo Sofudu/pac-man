@@ -2,6 +2,42 @@ import pygame
 import os
 import sys
 import random
+import pprint
+
+pygame.display.init()
+screen = pygame.display.set_mode((448, 576))
+CELL_SIZE = 16
+MAP = '''11111111111111111111111111111111
+10000000000001100000000000011111
+10111101111101101111101111011111
+10111101111101101111101111011111
+10111101111101101111101111011111
+10000000000000000000000000011111
+10111101101111111101101111011111
+10111101101111111101101111011111
+10000001100001100001100000011111
+11111101111101101111101111111111
+11111101111101101111101111111111
+11111101100222222001101111111111
+11111101101111111101101111111111
+11111101101000000101101111111111
+00000000001000000100000000000000
+11111101101000000101101111111111
+11111101101111111101101111111111
+11111101100000000001101111111111
+11111101101111111101101111111111
+11111101101111111101101111111111
+10000000000001100000000000011111
+10111101111101101111101111011111
+10111101111101101111101111011111
+10001100000222222000001100011111
+11101101101111111101101101111111
+11101101101111111101101101111111
+10000001100001100001100000011111
+10111111111101101111111111011111
+10111111111101101111111111011111
+10000000000000000000000000011111
+11111111111111111111111111111111'''.split('\n')
 
 
 # Поле 28 в ширину, в высоту 33 (+ 3 клетки сверху для скорбара, + 2 клетки снизу для уровня и кол-ва жизней)
@@ -23,13 +59,16 @@ class Position:
         return Position(self.x * other, self.y * other)
 
     def __neg__(self):
-        return Position(-self.x, self.y)
+        return Position(-self.x, -self.y)
 
     def to_tuple(self):
         return self.x, self.y
 
     def __eq__(self, other):
         return (self.x == other.x) and (self.y == other.y)
+
+    def copy(self):
+        return Position(self.x, self.y)
 
 
 # Основные векторы
@@ -91,28 +130,39 @@ def enter_frightened_mode():
     clyde.change_mode('frightened')
 
 
-def get_last_key():
-    pass
+def fun(x):
+    return x[0], list(map(lambda y: y.to_tuple(), x[1]))
 
 
 # Основной класс
 class Entity(pygame.sprite.Sprite):
     # Скоро будет
-    points = {(5, 7): list(DIRECTIONS.values())}
-    unique_points = dict()
+    points = {}
+    for i in range(28):
+        for j in range(1, 30):
+            if MAP[j][i] == '0' or MAP[j][i] == '2':
+                points[(i, j + 3)] = []
+                if (MAP[j - 1][i] == '0' or MAP[j - 1][i] == '2') and MAP[j][i] == '0':
+                    points[(i, j + 3)].append(DIRECTIONS['up'])
+                if MAP[j][i - 1] == '0' or MAP[j][i - 1] == '2':
+                    points[(i, j + 3)].append(DIRECTIONS['left'])
+                if MAP[j + 1][i] == '0' or MAP[j + 1][i] == '2':
+                    points[(i, j + 3)].append(DIRECTIONS['down'])
+                if MAP[j][i + 1] == '0' or MAP[j][i + 1] == '2':
+                    points[(i, j + 3)].append(DIRECTIONS['right'])
+    pprint.pprint(tuple(map(fun, points.items())))
     # Режимы поведения
     modes = {'in_house': 0, 'chase': 1, 'scatter': 2, 'frightened': 3, 'eaten': 4}
     # Основная точка, к которой лятят призраки после поедания их героем
     eaten_point = Position(13, 14)
     # Изображения
-    image_frightened = {'up': load_image('frightened_up.png', colorkey=-1),
-                        'down': load_image('frightened_down.png', colorkey=-1),
-                        'right': load_image('frightened_right.png', colorkey=-1),
-                        'left': load_image('frightened_left.png', colorkey=-1)}
+    image_frightened = load_image('frightened.png', colorkey=-1)
+    """
     image_eaten = {'up': load_image('eaten_up.png', colorkey=-1),
                    'down': load_image('eaten_down.png', colorkey=-1),
                    'right': load_image('eaten_right.png', colorkey=-1),
                    'left': load_image('eaten_left.png', colorkey=-1)}
+    """
 
     def __init__(self, *groups):
         super().__init__(*groups)
@@ -121,10 +171,21 @@ class Entity(pygame.sprite.Sprite):
 
     def choice_direction(self):
         self.make_goal_point()
-        possible = Entity.points.get(self.pos.to_tuple(), list(DIRECTIONS.values()))
-        possible.remove(-self.direction)
+        possible = Entity.points.get(self.pos.to_tuple())
         if self.mode != Entity.modes['frightened'] and self.mode != Entity.modes['in_house']:
-            min_direction = possible[0]
+            try:
+                a = len(possible)
+            except Exception as e:
+                print(self.pos.to_tuple())
+                raise SystemExit(e)
+            if possible.count(-self.direction):
+                possible.remove(-self.direction)
+            try:
+                min_direction = possible[0]
+            except Exception as e:
+                print(a, len(possible))
+                print(self.pos.to_tuple())
+                raise SystemExit(e)
             min_distance = calculate_distance(self.pos + min_direction, self.goal_point)
             for direction in possible:
                 distance = calculate_distance(self.pos + direction, self.goal_point)
@@ -138,8 +199,13 @@ class Entity(pygame.sprite.Sprite):
             return random.choice(possible)
 
     def make_step(self):
-        self.direction = self.choice_direction()
         self.pos = self.pos + self.direction
+        self.direction = self.choice_direction()
+        self.update_image()
+        if self.pos.to_tuple()[0] <= -2:
+            self.pos = self.pos + Position(32, 0)
+        elif self.pos.to_tuple()[0] >= 30:
+            self.pos = self.pos + Position(-32, 0)
 
     def make_goal_point(self):
         pass
@@ -154,19 +220,39 @@ class Entity(pygame.sprite.Sprite):
         self.mode = Entity.modes[mode]
         self.direction = -self.direction
 
+    def update_image(self):
+        pass
+
+    def update_rect(self, deltax, deltay):
+        self.rect = self.image.get_rect()
+        self.rect.x = CELL_SIZE * self.pos.to_tuple()[0] - CELL_SIZE / 4 + deltax
+        self.rect.y = CELL_SIZE * self.pos.to_tuple()[1] - CELL_SIZE / 4 + deltay
+
 
 class Pacman(Entity):
-    image = {'up': [load_image(f'pacman_up{i}' for i in range(1, 4))],
-             'left': [load_image(f'pacman_left{i}' for i in range(1, 4))],
-             'down': [load_image(f'pacman_down{i}' for i in range(1, 4))],
-             'right': [load_image(f'pacman_right{i}' for i in range(1, 4))]}
+    image = {'up': load_image(f'pacman_up.png', colorkey=-1),
+             'left': load_image(f'pacman_left.png', colorkey=-1),
+             'down': load_image(f'pacman_down.png', colorkey=-1),
+             'right': load_image(f'pacman_right.png', colorkey=-1)}
 
     def __init__(self, *groups):
-        super().__init__(*groups)
         self.pos = Position(13, 26)
+        super().__init__(*groups)
+        self.image = load_image('pacman_left.png', colorkey=-1)
+        self.update_rect(0, 0)
+
+    def change_direction(self, dir):
+        self.direction = DIRECTIONS[dir]
+        self.update_image()
 
     def choice_direction(self):
-        return DIRECTIONS[get_last_key()]
+        return self.direction
+
+    def update_image(self):
+        for dir, vec in DIRECTIONS.items():
+            if self.direction == vec:
+                break
+        self.image = Pacman.image[dir]
 
 
 class Blinky(Entity):
@@ -177,9 +263,11 @@ class Blinky(Entity):
     scatter_point = Position(25, -1)
 
     def __init__(self, *groups):
+        self.pos = Position(13, 14)
         super().__init__(*groups)
         self.make_goal_point()
-        self.pos = Position(13, 16)
+        self.update_image()
+        self.update_rect(0, 0)
 
     def change_mode(self, mode):
         super().change_mode(mode)
@@ -200,10 +288,7 @@ class Blinky(Entity):
                     break
             self.image = Blinky.image[direction]
         elif self.mode == Entity.modes['frightened']:
-            for direction, vector in DIRECTIONS.items():
-                if vector == self.direction:
-                    break
-            self.image = Entity.image_frightened[direction]
+            self.image = Entity.image_frightened
         elif self.mode == Entity.modes['eaten']:
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
@@ -219,11 +304,13 @@ class Pinky(Entity):
     scatter_point = Position(25, -1)
 
     def __init__(self, *groups):
+        self.pos = Position(13, 17)
         super().__init__(*groups)
         self.make_goal_point()
-        self.pos = Position(13, 18)
         self.mode = Entity.modes['in_house']
         self.direction = DIRECTIONS['down']
+        self.update_image()
+        self.update_rect(0, 0)
 
     def change_mode(self, mode):
         super().change_mode(mode)
@@ -238,7 +325,8 @@ class Pinky(Entity):
             self.goal_point = Entity.eaten_point
 
     def update_image(self):
-        if self.mode == Entity.modes['chase'] or self.mode == Entity.modes['scatter']:
+        if self.mode == Entity.modes['chase'] or self.mode == Entity.modes['scatter'] or self.mode == Entity.modes[
+            'in_house']:
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
                     break
@@ -247,7 +335,7 @@ class Pinky(Entity):
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
                     break
-            self.image = Entity.image_frightened[direction]
+            self.image = Entity.image_frightened
         elif self.mode == Entity.modes['eaten']:
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
@@ -263,11 +351,13 @@ class Inky(Entity):
     scatter_point = Position(29, 36)
 
     def __init__(self, *groups):
+        self.pos = Position(15, 17)
         super().__init__(*groups)
         self.make_goal_point()
-        self.pos = Position(15, 18)
         self.mode = Entity.modes['in_house']
         self.direction = DIRECTIONS['up']
+        self.update_image()
+        self.update_rect(0, 0)
 
     def change_mode(self, mode):
         super().change_mode(mode)
@@ -275,14 +365,15 @@ class Inky(Entity):
 
     def make_goal_point(self):
         if self.mode == Entity.modes['chase']:
-            self.goal_point = blinky.get_pos() + (pacman.get_pos() + pacman.get_direction() * 2 - blinky.get_pos) * 2
+            self.goal_point = blinky.get_pos() + (pacman.get_pos() + pacman.get_direction() * 2 - blinky.get_pos()) * 2
         if self.mode == Entity.modes['scatter']:
             self.goal_point = Inky.scatter_point
         if self.mode == Entity.modes['eaten']:
             self.goal_point = Entity.eaten_point
 
     def update_image(self):
-        if self.mode == Entity.modes['chase'] or self.mode == Entity.modes['scatter']:
+        if self.mode == Entity.modes['chase'] or self.mode == Entity.modes['scatter'] or self.mode == Entity.modes[
+            'in_house']:
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
                     break
@@ -307,11 +398,13 @@ class Clyde(Entity):
     scatter_point = Position(0, 36)
 
     def __init__(self, *groups):
+        self.pos = Position(11, 17)
         super().__init__(*groups)
         self.make_goal_point()
-        self.pos = Position(11, 38)
         self.mode = Entity.modes['in_house']
         self.direction = DIRECTIONS['up']
+        self.update_image()
+        self.update_rect(0, 0)
 
     def change_mode(self, mode):
         super().change_mode(mode)
@@ -319,7 +412,7 @@ class Clyde(Entity):
 
     def make_goal_point(self):
         if self.mode == Entity.modes['chase']:
-            if (pacman.get_pos() - self.get_pos()) ** 2 > 8:
+            if (pacman.get_pos() - self.get_pos()) ** 2 > 64:
                 self.goal_point = pacman.get_pos()
             else:
                 self.goal_point = Clyde.scatter_point
@@ -329,7 +422,8 @@ class Clyde(Entity):
             self.goal_point = Entity.eaten_point
 
     def update_image(self):
-        if self.mode == Entity.modes['chase'] or self.mode == Entity.modes['scatter']:
+        if self.mode == Entity.modes['chase'] or self.mode == Entity.modes['scatter'] or self.mode == Entity.modes[
+            'in_house']:
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
                     break
