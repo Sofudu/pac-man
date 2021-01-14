@@ -171,7 +171,7 @@ class Entity(pygame.sprite.Sprite):
 
     def choice_direction(self):
         self.make_goal_point()
-        possible = Entity.points.get(self.pos.to_tuple())
+        possible = Entity.points.get(self.pos.to_tuple(), list(DIRECTIONS.values())).copy()
         if self.mode != Entity.modes['frightened'] and self.mode != Entity.modes['in_house']:
             try:
                 a = len(possible)
@@ -301,7 +301,7 @@ class Pinky(Entity):
              'down': load_image('pinky_down.png', colorkey=-1),
              'right': load_image('pinky_right.png', colorkey=-1),
              'left': load_image('pinky_left.png', colorkey=-1)}
-    scatter_point = Position(25, -1)
+    scatter_point = Position(2, -1)
 
     def __init__(self, *groups):
         self.pos = Position(13, 17)
@@ -348,7 +348,7 @@ class Inky(Entity):
              'down': load_image('inky_down.png', colorkey=-1),
              'right': load_image('inky_right.png', colorkey=-1),
              'left': load_image('inky_left.png', colorkey=-1)}
-    scatter_point = Position(29, 36)
+    scatter_point = Position(27, 35)
 
     def __init__(self, *groups):
         self.pos = Position(15, 17)
@@ -395,7 +395,7 @@ class Clyde(Entity):
              'down': load_image('clyde_down.png', colorkey=-1),
              'right': load_image('clyde_right.png', colorkey=-1),
              'left': load_image('clyde_left.png', colorkey=-1)}
-    scatter_point = Position(0, 36)
+    scatter_point = Position(0, 35)
 
     def __init__(self, *groups):
         self.pos = Position(11, 17)
@@ -417,7 +417,7 @@ class Clyde(Entity):
             else:
                 self.goal_point = Clyde.scatter_point
         if self.mode == Entity.modes['scatter']:
-            self.goal_point = Inky.scatter_point
+            self.goal_point = Clyde.scatter_point
         if self.mode == Entity.modes['eaten']:
             self.goal_point = Entity.eaten_point
 

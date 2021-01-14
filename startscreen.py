@@ -181,11 +181,19 @@ pinky.direction = blinky.direction.copy()
 inky.direction = blinky.direction.copy()
 clyde.direction = blinky.direction.copy()
 
-pacman_deltax = pacman_deltay = blinky_deltax = blinky_deltay = pinky_deltax = pinky_deltay = inky_deltax = inky_deltay = clyde_deltax = clyde_deltay = 0
+pacman_deltax = pacman_deltay = 0
+blinky_deltax = 10
+blinky_deltay = 0
+pinky_deltax = 7
+pinky_deltay = 0
+inky_deltax = -5
+inky_deltay = 0
+clyde_deltax = clyde_deltay = 0
 blinky.update_rect(blinky_deltax, blinky_deltay)
 pinky.update_rect(pinky_deltax, pinky_deltay)
 inky.update_rect(inky_deltax, inky_deltay)
 clyde.update_rect(clyde_deltax, clyde_deltay)
+flag = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -201,7 +209,22 @@ while running:
                 pacman.change_direction('left')
             if event.key == pygame.K_d:
                 pacman.change_direction('right')
-    # move()
+            if event.key == pygame.K_SPACE:
+                if flag:
+                    blinky.change_mode('scatter')
+                    pinky.change_mode('scatter')
+                    inky.change_mode('scatter')
+                    clyde.change_mode('scatter')
+                    flag = False
+                    print('changed to scatter')
+                else:
+                    blinky.change_mode('chase')
+                    pinky.change_mode('chase')
+                    inky.change_mode('chase')
+                    clyde.change_mode('chase')
+                    flag = True
+                    print('changed to chase')
+    move()
     screen.fill("black")
     clock.tick(fps)
     all_sprites.draw(screen)
