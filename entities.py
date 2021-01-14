@@ -150,6 +150,12 @@ class Entity(pygame.sprite.Sprite):
                     points[(i, j + 3)].append(DIRECTIONS['down'])
                 if MAP[j][i + 1] == '0' or MAP[j][i + 1] == '2':
                     points[(i, j + 3)].append(DIRECTIONS['right'])
+    points[(-1, 17)] = [DIRECTIONS['left'], DIRECTIONS['right']]
+    points[(-2, 17)] = [DIRECTIONS['left'], DIRECTIONS['right']]
+    points[(28, 17)] = [DIRECTIONS['left'], DIRECTIONS['right']]
+    points[(29, 17)] = [DIRECTIONS['left'], DIRECTIONS['right']]
+    points[(-3, 17)] = [DIRECTIONS['left'], DIRECTIONS['right']]
+    points[(30, 17)] = [DIRECTIONS['left'], DIRECTIONS['right']]
     pprint.pprint(tuple(map(fun, points.items())))
     # Режимы поведения
     modes = {'in_house': 0, 'chase': 1, 'scatter': 2, 'frightened': 3, 'eaten': 4}
@@ -172,20 +178,10 @@ class Entity(pygame.sprite.Sprite):
     def choice_direction(self):
         self.make_goal_point()
         possible = Entity.points.get(self.pos.to_tuple(), list(DIRECTIONS.values())).copy()
+        if possible.count(-self.direction):
+            possible.remove(-self.direction)
         if self.mode != Entity.modes['frightened'] and self.mode != Entity.modes['in_house']:
-            try:
-                a = len(possible)
-            except Exception as e:
-                print(self.pos.to_tuple())
-                raise SystemExit(e)
-            if possible.count(-self.direction):
-                possible.remove(-self.direction)
-            try:
-                min_direction = possible[0]
-            except Exception as e:
-                print(a, len(possible))
-                print(self.pos.to_tuple())
-                raise SystemExit(e)
+            min_direction = possible[0]
             min_distance = calculate_distance(self.pos + min_direction, self.goal_point)
             for direction in possible:
                 distance = calculate_distance(self.pos + direction, self.goal_point)
@@ -260,7 +256,7 @@ class Blinky(Entity):
              'down': load_image('blinky_down.png', colorkey=-1),
              'right': load_image('blinky_right.png', colorkey=-1),
              'left': load_image('blinky_left.png', colorkey=-1)}
-    scatter_point = Position(25, -1)
+    scatter_point = Position(25, 0)
 
     def __init__(self, *groups):
         self.pos = Position(13, 14)
@@ -301,7 +297,7 @@ class Pinky(Entity):
              'down': load_image('pinky_down.png', colorkey=-1),
              'right': load_image('pinky_right.png', colorkey=-1),
              'left': load_image('pinky_left.png', colorkey=-1)}
-    scatter_point = Position(2, -1)
+    scatter_point = Position(2, 0)
 
     def __init__(self, *groups):
         self.pos = Position(13, 17)
@@ -382,7 +378,7 @@ class Inky(Entity):
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
                     break
-            self.image = Entity.image_frightened[direction]
+            self.image = Entity.image_frightened
         elif self.mode == Entity.modes['eaten']:
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
@@ -432,7 +428,7 @@ class Clyde(Entity):
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:
                     break
-            self.image = Entity.image_frightened[direction]
+            self.image = Entity.image_frightened
         elif self.mode == Entity.modes['eaten']:
             for direction, vector in DIRECTIONS.items():
                 if vector == self.direction:

@@ -2,7 +2,7 @@ import pygame
 import os
 import sys
 from itertools import cycle
-from entities import pacman, blinky, pinky, inky, clyde, screen, CELL_SIZE
+from entities import pacman, blinky, pinky, inky, clyde, screen, CELL_SIZE, enter_frightened_mode
 
 
 def load_image(name, colorkey=None):
@@ -73,6 +73,15 @@ def move():
     inky_deltay += inky.get_direction().to_tuple()[1]
     clyde_deltax += clyde.get_direction().to_tuple()[0]
     clyde_deltay += clyde.get_direction().to_tuple()[1]
+    if blinky_deltax == blinky_deltay == 0:
+        blinky.choice_direction()
+    if pinky_deltax == pinky_deltay == 0:
+        pinky.choice_direction()
+    if inky_deltax == inky_deltay == 0:
+        inky.choice_direction()
+    if clyde_deltax == clyde_deltay == 0:
+        clyde.choice_direction()
+
     if blinky_deltax == 16 or blinky_deltay == 16 or blinky_deltax == -16 or blinky_deltay == -16:
         blinky.make_step()
         blinky_deltax = blinky_deltay = 0
@@ -120,6 +129,10 @@ class Board:
         for i in range(self.height):
             for j in range(self.width):
                 pygame.draw.rect(screen, pygame.color.Color(50, 50, 50), (self.left + r * j, self.top + r * i, r, r), 1)
+        pygame.draw.rect(screen, 'red', (blinky.goal_point.to_tuple()[0] * CELL_SIZE, blinky.goal_point.to_tuple()[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE), 2)
+        pygame.draw.rect(screen, 'pink', (pinky.goal_point.to_tuple()[0] * CELL_SIZE, pinky.goal_point.to_tuple()[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE), 2)
+        pygame.draw.rect(screen, 'cyan', (inky.goal_point.to_tuple()[0] * CELL_SIZE, inky.goal_point.to_tuple()[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE), 2)
+        pygame.draw.rect(screen, 'orange', (clyde.goal_point.to_tuple()[0] * CELL_SIZE, clyde.goal_point.to_tuple()[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE),2)
 
     def get_cell(self, mouse_pos):
         x0 = self.left
@@ -224,6 +237,8 @@ while running:
                     clyde.change_mode('chase')
                     flag = True
                     print('changed to chase')
+            if event.key == pygame.K_f:
+                enter_frightened_mode()
     move()
     screen.fill("black")
     clock.tick(fps)
